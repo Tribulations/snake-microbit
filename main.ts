@@ -24,15 +24,8 @@ function moveUp (yPos: number) {
     led.plot(x, y)
 }
 input.onButtonPressed(Button.A, function () {
-    handleDirection(direction)
+    handleVerticalDirection(direction)
 })
-function handleDirection (_direction: string) {
-    if (direction == "left") {
-        direction = "right"
-    } else {
-        direction = "left"
-    }
-}
 function moveDown (yPos: number) {
     led.unplot(x, y)
     if (yPos >= 4) {
@@ -41,6 +34,15 @@ function moveDown (yPos: number) {
         y += 1
     }
     led.plot(x, y)
+}
+function handleVerticalDirection (_direction: string) {
+    if (direction == "left") {
+        direction = "down"
+    } else if (direction == "right") {
+        direction = "up"
+    } else {
+    	
+    }
 }
 function moveSnakeRight (xPosition: number) {
 	
