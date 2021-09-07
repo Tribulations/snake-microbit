@@ -27,7 +27,7 @@ function NaN2 () {
     return 1 / 0
 }
 function do_round () {
-    board = [0]
+    board = []
     snake_length_goal = 2
     snake_positions = [_2d_index(x_y(2, 2))]
     direction = x_y(1, 0)
@@ -35,8 +35,9 @@ function do_round () {
         board.push(0)
     }
     spawn_fruit()
-    while (true) {
-        round_loop()
+    while (round_loop() != "end") {
+        render_board()
+        basic.pause(500)
     }
 }
 input.onButtonPressed(Button.A, function () {
@@ -71,6 +72,13 @@ function coerce_to_number (probably_number: number) {
 }
 function vec_from_2d_index (_2d_index2: number) {
     return x_y(_2d_index2 % vec(board_size, "x"), Math.floor(_2d_index2 / vec(board_size, "x")))
+}
+function show_end_message (message: string) {
+    led.setBrightness(255)
+    basic.clearScreen()
+    // FIXME: Text has inconsistent brightness
+    basic.showString(message)
+    basic.pause(2000)
 }
 function spawn_fruit () {
     while (true) {
@@ -120,14 +128,13 @@ function round_loop () {
         if (next_head_pos_value == 3) {
             snake_length_goal += 1
             if (snake_length_goal >= board.length) {
-                // FIXME: Text has inconsistent brightness
-                basic.showString("WOW")
-                basic.pause(10000)
+                show_end_message("WOW")
+                return "end"
             }
             spawn_fruit()
         } else {
-            basic.showString("RIP")
-            basic.pause(10000)
+            show_end_message("RIP")
+            return "end"
         }
     }
     snake_positions.unshift(_2d_index(next_head_pos))
@@ -136,8 +143,7 @@ function round_loop () {
     if (!(snake_positions.length <= snake_length_goal)) {
         board[snake_positions.pop()] = 0
     }
-    render_board()
-    basic.pause(500)
+    return ""
 }
 function add_vectors (a: any[], b: any[]) {
     for (let xy of XY) {
