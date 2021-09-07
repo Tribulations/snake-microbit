@@ -24,8 +24,15 @@ function moveUp (yPos: number) {
     led.plot(x, y)
 }
 input.onButtonPressed(Button.A, function () {
-    onAKey(direction)
+    handleDirection(direction)
 })
+function handleDirection (_direction: string) {
+    if (direction == "left") {
+        direction = "right"
+    } else {
+        direction = "left"
+    }
+}
 function moveDown (yPos: number) {
     led.unplot(x, y)
     if (yPos >= 4) {
@@ -35,15 +42,14 @@ function moveDown (yPos: number) {
     }
     led.plot(x, y)
 }
+function moveSnakeRight (xPosition: number) {
+	
+}
 input.onButtonPressed(Button.AB, function () {
-    if (direction == "horizontal") {
-        direction = "vertical"
-    } else {
-        direction = "horizontal"
-    }
+	
 })
 input.onButtonPressed(Button.B, function () {
-    onBKey(direction)
+	
 })
 function onAKey (_direction: string) {
     if (_direction == "horizontal") {
@@ -64,7 +70,7 @@ function moveLeft (xPos: number) {
 let y = 0
 let x = 0
 let direction = ""
-direction = "horizontal"
+direction = "left"
 x = 2
 y = 2
 led.plot(x, y)
@@ -72,5 +78,15 @@ basic.forever(function () {
 	
 })
 loops.everyInterval(350, function () {
-    moveLeft(x)
+    if (direction == "left") {
+        moveLeft(x)
+    } else if (direction == "right") {
+        moveRight(x)
+    } else if (direction == "up") {
+        moveUp(y)
+    } else if (direction == "down") {
+        moveDown(y)
+    } else {
+    	
+    }
 })
