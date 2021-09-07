@@ -1,3 +1,16 @@
+function onAButtonPressed (_direction: string) {
+    if (direction == "left") {
+        direction = "down"
+    } else if (direction == "right") {
+        direction = "up"
+    } else if (direction == "down") {
+        direction = "left"
+    } else if (direction == "up") {
+        direction = "left"
+    } else {
+    	
+    }
+}
 function moveRight (xPos: number) {
     led.unplot(x, y)
     if (xPos >= 4) {
@@ -6,13 +19,6 @@ function moveRight (xPos: number) {
         x += 1
     }
     led.plot(x, y)
-}
-function onBKey (_direction: string) {
-    if (_direction == "horizontal") {
-        moveRight(x)
-    } else {
-        moveDown(y)
-    }
 }
 function moveUp (yPos: number) {
     led.unplot(x, y)
@@ -23,8 +29,21 @@ function moveUp (yPos: number) {
     }
     led.plot(x, y)
 }
+function onBButtonPressed (_direction: string) {
+    if (direction == "left") {
+        direction = "up"
+    } else if (direction == "right") {
+        direction = "down"
+    } else if (direction == "down") {
+        direction = "right"
+    } else if (direction == "up") {
+        direction = "right"
+    } else {
+    	
+    }
+}
 input.onButtonPressed(Button.A, function () {
-    handleVerticalDirection(direction)
+    onAButtonPressed(direction)
 })
 function moveDown (yPos: number) {
     led.unplot(x, y)
@@ -35,31 +54,12 @@ function moveDown (yPos: number) {
     }
     led.plot(x, y)
 }
-function handleVerticalDirection (_direction: string) {
-    if (direction == "left") {
-        direction = "down"
-    } else if (direction == "right") {
-        direction = "up"
-    } else {
-    	
-    }
-}
-function moveSnakeRight (xPosition: number) {
-	
-}
 input.onButtonPressed(Button.AB, function () {
 	
 })
 input.onButtonPressed(Button.B, function () {
-	
+    onBButtonPressed(direction)
 })
-function onAKey (_direction: string) {
-    if (_direction == "horizontal") {
-        moveLeft(x)
-    } else {
-        moveUp(y)
-    }
-}
 function moveLeft (xPos: number) {
     led.unplot(x, y)
     if (xPos <= 0) {
