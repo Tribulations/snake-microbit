@@ -140,7 +140,7 @@ function round_loop () {
     snake_positions.unshift(_2d_index(next_head_pos))
     board[_2d_index(head_pos)] = 1
     board[_2d_index(next_head_pos)] = 2
-    if (!(snake_positions.length <= snake_length_goal)) {
+    if (snake_positions.length > snake_length_goal) {
         board[snake_positions.pop()] = 0
     }
     return ""
