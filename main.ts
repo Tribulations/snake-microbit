@@ -265,6 +265,8 @@ XY = ["x", "y"]
 add_vectors_output = [0, 0]
 board_size = x_y(5, 5)
 image_blink_ms = 64
+// Nice
+radio.setGroup(69)
 basic.forever(function () {
     do_round()
 })

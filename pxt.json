@@ -2,7 +2,8 @@
     "name": "multi:biter snake",
     "dependencies": {
         "core": "*",
-        "microphone": "*"
+        "microphone": "*",
+        "radio": "*"
     },
     "files": [
         ".vscode/settings.json",
