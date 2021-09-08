@@ -1,5 +1,5 @@
 {
-    "name": "micro:biter snake",
+    "name": "multi:biter snake",
     "dependencies": {
         "core": "*",
         "microphone": "*"
