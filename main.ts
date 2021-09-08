@@ -36,16 +36,32 @@ function board_get_at (pos: any[]) {
 function do_round () {
     board = []
     snake_length_goal = 2
-    snake_positions = [_2d_index(x_y(2, 2))]
-    direction = x_y(1, 0)
+    snake_positions = [_2d_index(x_y(2, 0))]
     for (let index = 0; index < vec(board_size, "x") * vec(board_size, "y"); index++) {
         board.push(0)
     }
     spawn_fruit()
-    while (round_loop() != "end") {
-        render_board()
-        basic.pause(500)
+    direction = x_y(0, 1)
+    round_loop()
+    render_board()
+    while (!(input.buttonIsPressed(Button.A) || input.buttonIsPressed(Button.B))) {
+        // To avoid stopping progress on tone queue
+        basic.pause(5)
     }
+    queue_tone(262, 80)
+    queue_tone(330, 80)
+    queue_tone(392, 80)
+    running = true
+    while (true) {
+        do_round_round_loop_result = round_loop()
+        if (do_round_round_loop_result != "") {
+            show_end_message(do_round_round_loop_result)
+            break;
+        }
+        render_board()
+        basic.pause(400)
+    }
+    running = false
 }
 function board_set_at (pos: any[], value: number) {
     getset_at_2d_index = _2d_index(pos)
@@ -55,8 +71,14 @@ function board_set_at (pos: any[], value: number) {
     board[getset_at_2d_index] = value
     return value
 }
+function spawn_random_n_of_fruits () {
+    spawn_fruit()
+    if (randint(1, 15) == 15) {
+        spawn_random_n_of_fruits()
+    }
+}
 input.onButtonPressed(Button.A, function () {
-    direction = rotate_vector(direction, -1)
+    on_button_down(-1)
 })
 /**
  * Board
@@ -64,7 +86,7 @@ input.onButtonPressed(Button.A, function () {
 function render_board () {
     for (let x = 0; x <= vec(board_size, "x") - 1; x++) {
         for (let y = 0; y <= vec(board_size, "y") - 1; y++) {
-            // The LED in the top-left corner is (0, 0). Convert to "positive is up", as seen in math. It makes clockwise make sense in "rotate vector".
+            // The LED in the top-left corner is (0, 0). Convert to "positive y is up", as seen in math. It makes clockwise make sense in "rotate vector".
             render_y = vec(board_size, "y") - 1 - y
             cell_value = board[_2d_index(x_y(x, y))]
             led.unplot(x, render_y)
@@ -85,50 +107,30 @@ function render_board () {
 function coerce_to_number (probably_number: number) {
     return parseFloat(convertToText(probably_number))
 }
+function queue_tone (tone: number, duration: number) {
+    tone_queue.push(tone)
+    tone_queue.push(duration)
+}
 function vec_from_2d_index (_2d_index2: number) {
     return x_y(_2d_index2 % vec(board_size, "x"), Math.floor(_2d_index2 / vec(board_size, "x")))
 }
 function show_end_message (_type: string) {
     led.setBrightness(255)
     basic.clearScreen()
-    image_blink_ms_multiplier = 1
-    images.createImage(`
-        . # . . #
-        # . . # .
-        . # . # .
-        . # . # .
-        # . . . #
-        `).showImage(0)
-    basic.pause(image_blink_ms * image_blink_ms_multiplier)
-    images.createImage(`
-        # # . . .
-        # # . . .
-        # # . # #
-        . . # . .
-        . . # . .
-        `).showImage(0)
-    basic.pause(image_blink_ms * image_blink_ms_multiplier)
-    images.createImage(`
-        . . # # .
-        . # . . #
-        . # . # .
-        . # . . .
-        . . # # .
-        `).showImage(0)
-    basic.pause(image_blink_ms * image_blink_ms_multiplier)
-    basic.showNumber(snake_length_goal)
     if (_type == "win") {
     	
     } else if (_type == "loss") {
-        image_blink_ms_multiplier = 1
+        // This is supposed to be a skull...
         images.createImage(`
-            # # . . #
+            . # # # .
             # . # . #
-            # # . . #
-            # . # . #
-            # . # . #
-            `).showImage(0)
-        basic.pause(image_blink_ms * image_blink_ms_multiplier)
+            # # . # #
+            . # # # .
+            . # . # .
+            `).showImage(0, image_blink_ms)
+        queue_tone(200, 200)
+        queue_tone(200 * 2 ** -1, 500)
+        basic.pause(700)
     }
 }
 function spawn_fruit () {
@@ -166,35 +168,32 @@ function rotate_vector (vector: any[], turns: number): any {
     return rotate_vector(rotate_vector_new, sign(turns) * (Math.abs(turns) - 1))
 }
 input.onButtonPressed(Button.B, function () {
-    direction = rotate_vector(direction, 1)
+    on_button_down(1)
 })
-function animate_score_count () {
-    while (true) {
-        for (let index = 0; index <= board.length - 1; index++) {
-            if (board[index] != 0) {
-                let list: number[] = []
-                for (let element of list) {
-                	
-                }
-            }
-        }
-    }
+function on_eat_fruit () {
+    queue_tone(523, 80)
+    queue_tone(659, 40)
+    queue_tone(698, 40)
+    queue_tone(784, 40)
+    snake_length_goal += 1
+    spawn_random_n_of_fruits()
 }
 function round_loop () {
     head_pos = vec_from_2d_index(snake_positions[0])
     next_head_pos = add_vectors(head_pos, direction)
+    if (last_traveled_direction != direction) {
+        queue_tone(523, 20)
+    }
+    last_traveled_direction = direction
     next_head_pos_value = board_get_at(next_head_pos)
     if (next_head_pos_value != 0) {
         if (next_head_pos_value == 3) {
-            snake_length_goal += 1
+            on_eat_fruit()
             if (snake_length_goal >= board.length) {
-                show_end_message("win")
-                return "end"
+                return "win"
             }
-            spawn_fruit()
         } else {
-            show_end_message("loss")
-            return "end"
+            return "loss"
         }
     }
     snake_positions.unshift(_2d_index(next_head_pos))
@@ -204,6 +203,14 @@ function round_loop () {
         board[snake_positions.pop()] = 0
     }
     return ""
+}
+function on_button_down (turn_value: number) {
+    if (running) {
+        if (last_traveled_direction == direction) {
+            direction = rotate_vector(direction, turn_value)
+            queue_tone(466, 50)
+        }
+    }
 }
 function blink_images (images2: any[], speed_multiplier: number) {
     basic.clearScreen()
@@ -226,13 +233,6 @@ function sign (n: number) {
     }
     return 0
 }
-function blink_letters (text: string, speed_multiplier: number) {
-    blink_letters_letter_images = []
-    for (let index = 0; index <= text.length - 1; index++) {
-        blink_letters_letter_images.push(text.charAt(index))
-    }
-    blink_images(blink_letters_letter_images, speed_multiplier)
-}
 /**
  * Vector
  */
@@ -242,31 +242,47 @@ function x_y (x: number, y: number) {
 // -1 because as starting at 0 means the total number of iterations is n + 1
 // (kind of weird to have everything start at zero but not add a cleaner way to iterate up to but not including a number like length of an array)
 // -1 because we have already added a zero in the beginning to help with type inference
-let blink_letters_letter_images: string[] = []
 let next_head_pos_value = 0
+let last_traveled_direction: number[] = []
 let next_head_pos: number[] = []
 let head_pos: number[] = []
 let rotate_vector_new: number[] = []
 let n: any = null
 let spawn_fruit_attempt = 0
-let image_blink_ms_multiplier = 0
 let cell_value = 0
 let render_y = 0
-let direction: any = null
+let do_round_round_loop_result = ""
+let running = false
 let snake_positions: number[] = []
 let snake_length_goal = 0
 let board: number[] = []
 let getset_at_2d_index = 0
+let direction: number[] = []
 let image_blink_ms = 0
 let board_size: number[] = []
 let add_vectors_output: number[] = []
+let tone_queue: number[] = []
 let XY: string[] = []
 XY = ["x", "y"]
+tone_queue = []
 add_vectors_output = [0, 0]
 board_size = x_y(5, 5)
-image_blink_ms = 64
+image_blink_ms = 300
+// To avoid error if button is pressed before the game starts
+direction = x_y(0, 0)
 // Nice
 radio.setGroup(69)
 basic.forever(function () {
     do_round()
+})
+control.inBackground(function () {
+    while (true) {
+        if (tone_queue.length >= 2) {
+            music.ringTone(tone_queue.shift())
+            basic.pause(tone_queue.shift())
+        } else {
+            music.stopAllSounds()
+            basic.pause(1)
+        }
+    }
 })
