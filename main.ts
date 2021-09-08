@@ -55,40 +55,6 @@ function board_set_at (pos: any[], value: number) {
     board[getset_at_2d_index] = value
     return value
 }
-function init_image_lists () {
-    image_list__score = [images.createImage(`
-        . # . . #
-        # . . # .
-        . # . # .
-        # . . . #
-        . . . . .
-        `), images.createImage(`
-        # # . # #
-        # # . # .
-        # # . # .
-        . . . . .
-        . . . . .
-        `), images.createImage(`
-        . . . # .
-        . . # . #
-        . . # . .
-        . . . # #
-        . . . . .
-        `)]
-    image_list__RIP = [images.createImage(`
-        # # . . #
-        # . # . #
-        # # . . #
-        # . # . #
-        # . # . #
-        `), images.createImage(`
-        . . # # .
-        . . # . #
-        . . # # .
-        . . # . .
-        . . # . .
-        `)]
-}
 input.onButtonPressed(Button.A, function () {
     direction = rotate_vector(direction, -1)
 })
@@ -125,11 +91,44 @@ function vec_from_2d_index (_2d_index2: number) {
 function show_end_message (_type: string) {
     led.setBrightness(255)
     basic.clearScreen()
+    image_blink_ms_multiplier = 1
+    images.createImage(`
+        . # . . #
+        # . . # .
+        . # . # .
+        . # . # .
+        # . . . #
+        `).showImage(0)
+    basic.pause(image_blink_ms * image_blink_ms_multiplier)
+    images.createImage(`
+        # # . . .
+        # # . . .
+        # # . # #
+        . . # . .
+        . . # . .
+        `).showImage(0)
+    basic.pause(image_blink_ms * image_blink_ms_multiplier)
+    images.createImage(`
+        . . # # .
+        . # . . #
+        . # . # .
+        . # . . .
+        . . # # .
+        `).showImage(0)
+    basic.pause(image_blink_ms * image_blink_ms_multiplier)
     basic.showNumber(snake_length_goal)
     if (_type == "win") {
-        blink_images(image_list__score, 1)
+    	
     } else if (_type == "loss") {
-        blink_images(image_list__RIP, 1)
+        image_blink_ms_multiplier = 1
+        images.createImage(`
+            # # . . #
+            # . # . #
+            # # . . #
+            # . # . #
+            # . # . #
+            `).showImage(0)
+        basic.pause(image_blink_ms * image_blink_ms_multiplier)
     }
 }
 function spawn_fruit () {
@@ -139,57 +138,6 @@ function spawn_fruit () {
             board[spawn_fruit_attempt] = 3
             break;
         }
-    }
-}
-function get_letter (letter: string) {
-    if (letter == "W") {
-        return images.createImage(`
-            # . . . #
-            # . . . #
-            # . # . #
-            # . # . #
-            . # . # .
-            `)
-    } else if (letter == "O") {
-        return images.createImage(`
-            . . # . .
-            . # . # .
-            . # . # .
-            . # . # .
-            . . # . .
-            `)
-    } else if (letter == "R") {
-        return images.createImage(`
-            . # # . .
-            . # . # .
-            . # # . .
-            . # . # .
-            . # . # .
-            `)
-    } else if (letter == "I") {
-        return images.createImage(`
-            . # # # .
-            . . # . .
-            . . # . .
-            . . # . .
-            . # # # .
-            `)
-    } else if (letter == "P") {
-        return images.createImage(`
-            . # # # .
-            . # . # .
-            . # # # .
-            . # . . .
-            . # . . .
-            `)
-    } else {
-        return images.createImage(`
-            # . . . #
-            . # . # .
-            . . . . .
-            . # . # .
-            # . . . #
-            `)
     }
 }
 // because arrays cannot store other arrays we are forced to flatten vectors to a single index
@@ -281,7 +229,7 @@ function sign (n: number) {
 function blink_letters (text: string, speed_multiplier: number) {
     blink_letters_letter_images = []
     for (let index = 0; index <= text.length - 1; index++) {
-        blink_letters_letter_images.push(get_letter(text.charAt(index)))
+        blink_letters_letter_images.push(text.charAt(index))
     }
     blink_images(blink_letters_letter_images, speed_multiplier)
 }
@@ -294,17 +242,16 @@ function x_y (x: number, y: number) {
 // -1 because as starting at 0 means the total number of iterations is n + 1
 // (kind of weird to have everything start at zero but not add a cleaner way to iterate up to but not including a number like length of an array)
 // -1 because we have already added a zero in the beginning to help with type inference
-let blink_letters_letter_images: Image[] = []
+let blink_letters_letter_images: string[] = []
 let next_head_pos_value = 0
 let next_head_pos: number[] = []
 let head_pos: number[] = []
 let rotate_vector_new: number[] = []
 let n: any = null
 let spawn_fruit_attempt = 0
+let image_blink_ms_multiplier = 0
 let cell_value = 0
 let render_y = 0
-let image_list__RIP: Image[] = []
-let image_list__score: Image[] = []
 let direction: any = null
 let snake_positions: number[] = []
 let snake_length_goal = 0
@@ -317,7 +264,6 @@ let XY: string[] = []
 XY = ["x", "y"]
 add_vectors_output = [0, 0]
 board_size = x_y(5, 5)
-init_image_lists()
 image_blink_ms = 64
 basic.forever(function () {
     do_round()
