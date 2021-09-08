@@ -22,6 +22,12 @@ function set_vec (vector: any[], component: string, value: number) {
         vector[1] = value
     }
 }
+function show_final_score (finalscore: number) {
+    led.setBrightness(255)
+    basic.clearScreen()
+    basic.showNumber(finalscore)
+    basic.pause(2000)
+}
 // You cannot enter NaN. This can be used to enter it.
 function NaN2 () {
     return 1 / 0
@@ -43,9 +49,6 @@ function do_round () {
 input.onButtonPressed(Button.A, function () {
     direction = rotate_vector(direction, -1)
 })
-/**
- * Board
- */
 function render_board () {
     for (let x = 0; x <= vec(board_size, "x") - 1; x++) {
         for (let y = 0; y <= vec(board_size, "y") - 1; y++) {
@@ -89,6 +92,9 @@ function spawn_fruit () {
         }
     }
 }
+/**
+ * Board
+ */
 // because arrays cannot store other arrays we are forced to flatten vectors to a single index
 function _2d_index (pos: any[]) {
     for (let xy of XY) {
@@ -128,12 +134,13 @@ function round_loop () {
         if (next_head_pos_value == 3) {
             snake_length_goal += 1
             if (snake_length_goal >= board.length) {
+                show_final_score(snake_length_goal)
                 show_end_message("WOW")
                 return "end"
             }
             spawn_fruit()
         } else {
-            show_end_message("RIP")
+            show_final_score(snake_length_goal)
             return "end"
         }
     }
