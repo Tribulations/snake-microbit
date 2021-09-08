@@ -15,6 +15,11 @@ function vec (vector: any[], component: string) {
         return vector[1]
     }
 }
+function act_as_screen () {
+    while (true) {
+        basic.showString("not implemented")
+    }
+}
 function set_vec (vector: any[], component: string, value: number) {
     if (component == "x") {
         vector[0] = value
@@ -26,6 +31,14 @@ function set_vec (vector: any[], component: string, value: number) {
 function NaN2 () {
     return 1 / 0
 }
+function act_as_controller () {
+    board_size = get_virtual_screen_size()
+    // To avoid error if button is pressed before the game starts
+    direction = x_y(0, 0)
+    while (true) {
+        do_round()
+    }
+}
 function board_get_at (pos: any[]) {
     getset_at_2d_index = _2d_index(pos)
     if (getset_at_2d_index == -1) {
@@ -34,23 +47,17 @@ function board_get_at (pos: any[]) {
     return board[getset_at_2d_index]
 }
 function do_round () {
-    board = []
+    clear_board()
     snake_length_goal = 2
     snake_positions = [_2d_index(x_y(2, 0))]
-    for (let index = 0; index < vec(board_size, "x") * vec(board_size, "y"); index++) {
-        board.push(0)
-    }
     spawn_fruit()
     direction = x_y(0, 1)
     round_loop()
-    render_board()
     while (!(input.buttonIsPressed(Button.A) || input.buttonIsPressed(Button.B))) {
         // To avoid stopping progress on tone queue
         basic.pause(5)
     }
-    queue_tone(262, 80)
-    queue_tone(330, 80)
-    queue_tone(392, 80)
+    que_start_chime()
     running = true
     while (true) {
         do_round_round_loop_result = round_loop()
@@ -58,7 +65,6 @@ function do_round () {
             show_end_message(do_round_round_loop_result)
             break;
         }
-        render_board()
         basic.pause(400)
     }
     running = false
@@ -69,6 +75,7 @@ function board_set_at (pos: any[], value: number) {
         return -1
     }
     board[getset_at_2d_index] = value
+    update_virtual_screen_pixel(pos, type__intensity[value])
     return value
 }
 function spawn_random_n_of_fruits () {
@@ -77,35 +84,30 @@ function spawn_random_n_of_fruits () {
         spawn_random_n_of_fruits()
     }
 }
+// detect immediately instead of waiting for them to be released
 input.onButtonPressed(Button.A, function () {
     on_button_down(-1)
 })
-/**
- * Board
- */
-function render_board () {
-    for (let x = 0; x <= vec(board_size, "x") - 1; x++) {
-        for (let y = 0; y <= vec(board_size, "y") - 1; y++) {
-            // The LED in the top-left corner is (0, 0). Convert to "positive y is up", as seen in math. It makes clockwise make sense in "rotate vector".
-            render_y = vec(board_size, "y") - 1 - y
-            cell_value = board[_2d_index(x_y(x, y))]
-            led.unplot(x, render_y)
-            // tail
-            // head
-            // fruit
-            if (cell_value == 1) {
-                led.plotBrightness(x, render_y, 99)
-            } else if (cell_value == 2) {
-                led.plotBrightness(x, render_y, 142)
-            } else if (cell_value == 3) {
-                led.plotBrightness(x, render_y, 255)
-            }
-        }
+function clear_board () {
+    clear_virtual_screen()
+    board = []
+    for (let index = 0; index < vec(board_size, "x") * vec(board_size, "y"); index++) {
+        board.push(board_value("air"))
     }
 }
 // needed because some functions like "array get value at index" complains
 function coerce_to_number (probably_number: number) {
     return parseFloat(convertToText(probably_number))
+}
+// TODO(Jon, Joakim): Spelet har abstraherat bort skärmen. Byt ut den här implementeringen av en "virtual screen" med en som stöder flera skärmar.
+function update_virtual_screen_pixel (pos: any[], brightness: number) {
+    x = vec(pos, "x")
+    y = vec(board_size, "y") - 1 - vec(pos, "y")
+    if (brightness == 0) {
+        led.unplot(x, y)
+    } else {
+        led.plotBrightness(x, y, brightness)
+    }
 }
 function queue_tone (tone: number, duration: number) {
     tone_queue.push(tone)
@@ -114,12 +116,17 @@ function queue_tone (tone: number, duration: number) {
 function vec_from_2d_index (_2d_index2: number) {
     return x_y(_2d_index2 % vec(board_size, "x"), Math.floor(_2d_index2 / vec(board_size, "x")))
 }
+/**
+ * Board
+ */
 function show_end_message (_type: string) {
     led.setBrightness(255)
     basic.clearScreen()
     if (_type == "win") {
     	
     } else if (_type == "loss") {
+        queue_tone(200, 200)
+        queue_tone(200 * 2 ** -1, 500)
         // This is supposed to be a skull...
         images.createImage(`
             . # # # .
@@ -128,19 +135,25 @@ function show_end_message (_type: string) {
             . # # # .
             . # . # .
             `).showImage(0, image_blink_ms)
-        queue_tone(200, 200)
-        queue_tone(200 * 2 ** -1, 500)
         basic.pause(700)
     }
 }
 function spawn_fruit () {
     while (true) {
         spawn_fruit_attempt = randint(0, board.length - 1)
-        if (board[spawn_fruit_attempt] == 0) {
-            board[spawn_fruit_attempt] = 3
+        if (board[spawn_fruit_attempt] == board_value("air")) {
+            board_set_at(vec_from_2d_index(spawn_fruit_attempt), board_value("fruit"))
             break;
         }
     }
+}
+function que_start_chime () {
+    queue_tone(262, 80)
+    queue_tone(330, 80)
+    queue_tone(392, 80)
+}
+function clear_virtual_screen () {
+    basic.clearScreen()
 }
 // because arrays cannot store other arrays we are forced to flatten vectors to a single index
 function _2d_index (pos: any[]) {
@@ -170,6 +183,20 @@ function rotate_vector (vector: any[], turns: number): any {
 input.onButtonPressed(Button.B, function () {
     on_button_down(1)
 })
+function board_value (name: string) {
+    if (name == "air") {
+        return 0
+    } else if (name == "tail") {
+        return 1
+    } else if (name == "head") {
+        return 2
+    } else if (name == "fruit") {
+        return 3
+    } else {
+    	
+    }
+    return -1
+}
 function on_eat_fruit () {
     queue_tone(523, 80)
     queue_tone(659, 40)
@@ -186,8 +213,8 @@ function round_loop () {
     }
     last_traveled_direction = direction
     next_head_pos_value = board_get_at(next_head_pos)
-    if (next_head_pos_value != 0) {
-        if (next_head_pos_value == 3) {
+    if (next_head_pos_value != board_value("air")) {
+        if (next_head_pos_value == board_value("fruit")) {
             on_eat_fruit()
             if (snake_length_goal >= board.length) {
                 return "win"
@@ -197,18 +224,23 @@ function round_loop () {
         }
     }
     snake_positions.unshift(_2d_index(next_head_pos))
-    board_set_at(head_pos, 1)
-    board_set_at(next_head_pos, 2)
+    board_set_at(head_pos, board_value("tail"))
+    board_set_at(next_head_pos, board_value("head"))
     if (!(snake_positions.length <= snake_length_goal)) {
-        board[snake_positions.pop()] = 0
+        board_set_at(vec_from_2d_index(snake_positions.pop()), 0)
     }
     return ""
 }
+function get_virtual_screen_size () {
+    return x_y(5, 5)
+}
 function on_button_down (turn_value: number) {
-    if (running) {
-        if (last_traveled_direction == direction) {
-            direction = rotate_vector(direction, turn_value)
-            queue_tone(466, 50)
+    if (role == "controller") {
+        if (running) {
+            if (last_traveled_direction == direction) {
+                direction = rotate_vector(direction, turn_value)
+                queue_tone(466, 50)
+            }
         }
     }
 }
@@ -233,6 +265,24 @@ function sign (n: number) {
     }
     return 0
 }
+function show_main_menu () {
+    // Nice
+    radio.setGroup(69)
+    basic.showLeds(`
+        . . # # #
+        # . . . #
+        # # . # #
+        # . . . .
+        . . . # .
+        `)
+    while (!(input.buttonIsPressed(Button.A) || input.buttonIsPressed(Button.B))) {
+    	
+    }
+    if (input.buttonIsPressed(Button.B)) {
+        role = "controller"
+        act_as_controller()
+    }
+}
 /**
  * Vector
  */
@@ -242,6 +292,7 @@ function x_y (x: number, y: number) {
 // -1 because as starting at 0 means the total number of iterations is n + 1
 // (kind of weird to have everything start at zero but not add a cleaner way to iterate up to but not including a number like length of an array)
 // -1 because we have already added a zero in the beginning to help with type inference
+let role = ""
 let next_head_pos_value = 0
 let last_traveled_direction: number[] = []
 let next_head_pos: number[] = []
@@ -249,8 +300,8 @@ let head_pos: number[] = []
 let rotate_vector_new: number[] = []
 let n: any = null
 let spawn_fruit_attempt = 0
-let cell_value = 0
-let render_y = 0
+let y = 0
+let x: any = null
 let do_round_round_loop_result = ""
 let running = false
 let snake_positions: number[] = []
@@ -258,23 +309,24 @@ let snake_length_goal = 0
 let board: number[] = []
 let getset_at_2d_index = 0
 let direction: number[] = []
-let image_blink_ms = 0
 let board_size: number[] = []
+let type__intensity: number[] = []
+let image_blink_ms = 0
 let add_vectors_output: number[] = []
 let tone_queue: number[] = []
 let XY: string[] = []
 XY = ["x", "y"]
 tone_queue = []
 add_vectors_output = [0, 0]
-board_size = x_y(5, 5)
 image_blink_ms = 300
-// To avoid error if button is pressed before the game starts
-direction = x_y(0, 0)
-// Nice
-radio.setGroup(69)
-basic.forever(function () {
-    do_round()
-})
+// See "board value" function for the order / names of the types of objects that can be on the board.
+type__intensity = [
+0,
+100,
+200,
+255
+]
+show_main_menu()
 control.inBackground(function () {
     while (true) {
         if (tone_queue.length >= 2) {
