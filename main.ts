@@ -16,9 +16,8 @@ function vec (vector: any[], component: string) {
     }
 }
 function act_as_screen () {
-    while (true) {
-        basic.showString("not implemented")
-    }
+    screens += 1
+    basic.showNumber(screens)
 }
 function set_vec (vector: any[], component: string, value: number) {
     if (component == "x") {
@@ -34,7 +33,7 @@ function NaN2 () {
 function act_as_controller () {
     board_size = get_virtual_screen_size()
     // To avoid error if button is pressed before the game starts
-    direction = x_y(0, 0)
+    direction = x_y(0, 1)
     while (true) {
         do_round()
     }
@@ -278,12 +277,17 @@ function show_main_menu () {
             menu = 0
         }
     }
+    while (!(input.buttonIsPressed(Button.A) || input.buttonIsPressed(Button.B))) {
+    	
+    }
     if (input.buttonIsPressed(Button.B)) {
         if (menu == 1) {
             role = "controller"
+            inTheMenu = false
             act_as_controller()
         } else if (menu == 2) {
             role = "screen"
+            inTheMenu = false
             act_as_screen()
         }
     }
@@ -308,13 +312,15 @@ let spawn_fruit_attempt = 0
 let y = 0
 let x: any = null
 let do_round_round_loop_result = ""
+let running = false
 let snake_positions: number[] = []
 let snake_length_goal = 0
 let board: number[] = []
 let getset_at_2d_index = 0
 let direction: number[] = []
 let board_size: number[] = []
-let running = false
+let screens = 0
+let inTheMenu = false
 let menu = 0
 let menuChoices = 0
 let type__intensity: number[] = []
@@ -335,6 +341,7 @@ type__intensity = [
 ]
 menuChoices = 2
 menu = 0
+inTheMenu = true
 basic.showLeds(`
     . # . . #
     # . # # #
@@ -342,7 +349,7 @@ basic.showLeds(`
     # . # . #
     # . # . #
     `)
-while (!(running)) {
+while (inTheMenu) {
     show_main_menu()
 }
 control.inBackground(function () {
