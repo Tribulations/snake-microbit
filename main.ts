@@ -26,6 +26,14 @@ function set_vec (vector: any[], component: string, value: number) {
         vector[1] = value
     }
 }
+// Called whenever a button changes state. The button is identified by its X position where the logo is at 0.
+function on_button (button: number, down: boolean) {
+    if (role == "controller") {
+        controller_on_button(button, down)
+    } else if (role == "undetermined") {
+        undetermined_on_button(button, down)
+    }
+}
 // You cannot enter NaN. This can be used to enter it.
 function NaN2 () {
     return 1 / 0
@@ -44,6 +52,12 @@ function board_get_at (pos: any[]) {
         return -1
     }
     return board[getset_at_2d_index]
+}
+function controller_on_button (button: number, down: boolean) {
+    if (down && running && last_traveled_direction == direction) {
+        direction = rotate_vector(direction, button)
+        queue_tone(466, 50)
+    }
 }
 function do_round () {
     clear_board()
@@ -83,10 +97,43 @@ function spawn_random_n_of_fruits () {
         spawn_random_n_of_fruits()
     }
 }
-// detect immediately instead of waiting for them to be released
-input.onButtonPressed(Button.A, function () {
-    on_button_down(-1)
-})
+function undetermined_on_button (button: number, down: boolean) {
+    if (down) {
+        if (button == -1) {
+            menu += 1
+            if (menu > menuChoices) {
+                menu = 1
+            }
+            if (menu == 1) {
+                images.createImage(`
+                    . . # . .
+                    . # # . .
+                    . . # . .
+                    . . # . .
+                    . # # # .
+                    `).showImage(0, 0)
+            } else if (menu == 2) {
+                images.createImage(`
+                    . # # . .
+                    . . . # .
+                    . . # # .
+                    . # . . .
+                    . # # # .
+                    `).showImage(0, 0)
+            }
+        } else if (button == 1) {
+            if (menu == 1) {
+                role = "controller"
+                inTheMenu = false
+                act_as_controller()
+            } else if (menu == 2) {
+                role = "screen"
+                inTheMenu = false
+                act_as_screen()
+            }
+        }
+    }
+}
 function clear_board () {
     clear_virtual_screen()
     board = []
@@ -98,7 +145,7 @@ function clear_board () {
 function coerce_to_number (probably_number: number) {
     return parseFloat(convertToText(probably_number))
 }
-// TODO(Jon, Joakim): Spelet har abstraherat bort skärmen. Byt ut den här implementeringen av en "virtual screen" med en som stöder flera skärmar.
+// TODO: Spelet har abstraherat bort skärmen. Byt ut den här implementeringen av en "virtual screen" med en som stöder flera skärmar.
 function update_virtual_screen_pixel (pos: any[], brightness: number) {
     x = vec(pos, "x")
     y = vec(board_size, "y") - 1 - vec(pos, "y")
@@ -115,6 +162,9 @@ function queue_tone (tone: number, duration: number) {
 function vec_from_2d_index (_2d_index2: number) {
     return x_y(_2d_index2 % vec(board_size, "x"), Math.floor(_2d_index2 / vec(board_size, "x")))
 }
+/**
+ * Board
+ */
 function show_end_message (_type: string) {
     led.setBrightness(255)
     basic.clearScreen()
@@ -143,6 +193,9 @@ function spawn_fruit () {
         }
     }
 }
+control.onEvent(EventBusSource.MICROBIT_ID_BUTTON_B, EventBusValue.MICROBIT_EVT_ANY, function () {
+    on_button(1, control.eventValue() == EventBusValue.MICROBIT_BUTTON_EVT_DOWN)
+})
 function que_start_chime () {
     queue_tone(262, 80)
     queue_tone(330, 80)
@@ -151,9 +204,6 @@ function que_start_chime () {
 function clear_virtual_screen () {
     basic.clearScreen()
 }
-/**
- * Board
- */
 // because arrays cannot store other arrays we are forced to flatten vectors to a single index
 function _2d_index (pos: any[]) {
     for (let xy of XY) {
@@ -179,9 +229,6 @@ function rotate_vector (vector: any[], turns: number): any {
     // We have rotated one turn closer to the base case of turns = 0. Recurse with one less turn in the same direction.
     return rotate_vector(rotate_vector_new, sign(turns) * (Math.abs(turns) - 1))
 }
-input.onButtonPressed(Button.B, function () {
-    on_button_down(1)
-})
 function board_value (name: string) {
     if (name == "air") {
         return 0
@@ -191,11 +238,12 @@ function board_value (name: string) {
         return 2
     } else if (name == "fruit") {
         return 3
-    } else {
-    	
     }
     return -1
 }
+control.onEvent(EventBusSource.MICROBIT_ID_BUTTON_A, EventBusValue.MICROBIT_EVT_ANY, function () {
+    on_button(-1, control.eventValue() == EventBusValue.MICROBIT_BUTTON_EVT_DOWN)
+})
 function on_eat_fruit () {
     queue_tone(523, 80)
     queue_tone(659, 40)
@@ -226,22 +274,12 @@ function round_loop () {
     board_set_at(head_pos, board_value("tail"))
     board_set_at(next_head_pos, board_value("head"))
     if (!(snake_positions.length <= snake_length_goal)) {
-        board_set_at(vec_from_2d_index(snake_positions.pop()), 0)
+        board_set_at(vec_from_2d_index(snake_positions.pop()), board_value("air"))
     }
     return ""
 }
 function get_virtual_screen_size () {
     return x_y(5, 5)
-}
-function on_button_down (turn_value: number) {
-    if (role == "controller") {
-        if (running) {
-            if (last_traveled_direction == direction) {
-                direction = rotate_vector(direction, turn_value)
-                queue_tone(466, 50)
-            }
-        }
-    }
 }
 function blink_images (images2: any[], speed_multiplier: number) {
     basic.clearScreen()
@@ -267,30 +305,16 @@ function sign (n: number) {
 function show_main_menu () {
     // Nice
     radio.setGroup(69)
-    if (input.buttonIsPressed(Button.A)) {
-        menu += 1
-        if (menu == 1) {
-            basic.showNumber(1)
-        } else if (menu == 2) {
-            basic.showNumber(2)
-        } else if (menu > menuChoices) {
-            menu = 0
-        }
-    }
-    while (!(input.buttonIsPressed(Button.A) || input.buttonIsPressed(Button.B))) {
-    	
-    }
-    if (input.buttonIsPressed(Button.B)) {
-        if (menu == 1) {
-            role = "controller"
-            inTheMenu = false
-            act_as_controller()
-        } else if (menu == 2) {
-            role = "screen"
-            inTheMenu = false
-            act_as_screen()
-        }
-    }
+    basic.showLeds(`
+        . # . . #
+        # . # # #
+        # # # . #
+        # . # . #
+        # . # . #
+        `)
+    menuChoices = 2
+    menu = 1
+    inTheMenu = true
 }
 /**
  * Vector
@@ -301,9 +325,7 @@ function x_y (x: number, y: number) {
 // -1 because as starting at 0 means the total number of iterations is n + 1
 // (kind of weird to have everything start at zero but not add a cleaner way to iterate up to but not including a number like length of an array)
 // -1 because we have already added a zero in the beginning to help with type inference
-let role = ""
 let next_head_pos_value = 0
-let last_traveled_direction: number[] = []
 let next_head_pos: number[] = []
 let head_pos: number[] = []
 let rotate_vector_new: number[] = []
@@ -311,18 +333,20 @@ let n: any = null
 let spawn_fruit_attempt = 0
 let y = 0
 let x: any = null
+let inTheMenu = false
+let menuChoices = 0
+let menu = 0
 let do_round_round_loop_result = ""
-let running = false
 let snake_positions: number[] = []
 let snake_length_goal = 0
+let last_traveled_direction: number[] = []
+let running = false
 let board: number[] = []
 let getset_at_2d_index = 0
 let direction: number[] = []
 let board_size: number[] = []
 let screens = 0
-let inTheMenu = false
-let menu = 0
-let menuChoices = 0
+let role = ""
 let type__intensity: number[] = []
 let image_blink_ms = 0
 let add_vectors_output: number[] = []
@@ -339,19 +363,8 @@ type__intensity = [
 200,
 255
 ]
-menuChoices = 2
-menu = 0
-inTheMenu = true
-basic.showLeds(`
-    . # . . #
-    # . # # #
-    # # # . #
-    # . # . #
-    # . # . #
-    `)
-while (inTheMenu) {
-    show_main_menu()
-}
+role = "undetermined"
+show_main_menu()
 control.inBackground(function () {
     while (true) {
         if (tone_queue.length >= 2) {
