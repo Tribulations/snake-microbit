@@ -116,9 +116,6 @@ function queue_tone (tone: number, duration: number) {
 function vec_from_2d_index (_2d_index2: number) {
     return x_y(_2d_index2 % vec(board_size, "x"), Math.floor(_2d_index2 / vec(board_size, "x")))
 }
-/**
- * Board
- */
 function show_end_message (_type: string) {
     led.setBrightness(255)
     basic.clearScreen()
@@ -155,6 +152,9 @@ function que_start_chime () {
 function clear_virtual_screen () {
     basic.clearScreen()
 }
+/**
+ * Board
+ */
 // because arrays cannot store other arrays we are forced to flatten vectors to a single index
 function _2d_index (pos: any[]) {
     for (let xy of XY) {
@@ -268,19 +268,23 @@ function sign (n: number) {
 function show_main_menu () {
     // Nice
     radio.setGroup(69)
-    basic.showLeds(`
-        . . # # #
-        # . . . #
-        # # . # #
-        # . . . .
-        . . . # .
-        `)
-    while (!(input.buttonIsPressed(Button.A) || input.buttonIsPressed(Button.B))) {
-    	
+    if (input.buttonIsPressed(Button.A)) {
+        menu += 1
     }
-    if (input.buttonIsPressed(Button.B)) {
-        role = "controller"
-        act_as_controller()
+    if (menu == 1) {
+        basic.showNumber(1)
+        if (input.buttonIsPressed(Button.B)) {
+            role = "controller"
+            act_as_controller()
+        }
+    } else if (menu == 2) {
+        basic.showNumber(2)
+        if (input.buttonIsPressed(Button.B)) {
+            role = "screen"
+            act_as_screen()
+        }
+    } else if (menu > menuChoices) {
+        menu = 0
     }
 }
 /**
@@ -303,13 +307,15 @@ let spawn_fruit_attempt = 0
 let y = 0
 let x: any = null
 let do_round_round_loop_result = ""
-let running = false
 let snake_positions: number[] = []
 let snake_length_goal = 0
 let board: number[] = []
 let getset_at_2d_index = 0
 let direction: number[] = []
 let board_size: number[] = []
+let running = false
+let menu = 0
+let menuChoices = 0
 let type__intensity: number[] = []
 let image_blink_ms = 0
 let add_vectors_output: number[] = []
@@ -326,7 +332,18 @@ type__intensity = [
 200,
 255
 ]
-show_main_menu()
+menuChoices = 2
+menu = 0
+basic.showLeds(`
+    . # . . #
+    # . # # #
+    # # # . #
+    # . # . #
+    # . # . #
+    `)
+while (!(running)) {
+    show_main_menu()
+}
 control.inBackground(function () {
     while (true) {
         if (tone_queue.length >= 2) {
