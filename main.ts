@@ -270,21 +270,22 @@ function show_main_menu () {
     radio.setGroup(69)
     if (input.buttonIsPressed(Button.A)) {
         menu += 1
+        if (menu == 1) {
+            basic.showNumber(1)
+        } else if (menu == 2) {
+            basic.showNumber(2)
+        } else if (menu > menuChoices) {
+            menu = 0
+        }
     }
-    if (menu == 1) {
-        basic.showNumber(1)
-        if (input.buttonIsPressed(Button.B)) {
+    if (input.buttonIsPressed(Button.B)) {
+        if (menu == 1) {
             role = "controller"
             act_as_controller()
-        }
-    } else if (menu == 2) {
-        basic.showNumber(2)
-        if (input.buttonIsPressed(Button.B)) {
+        } else if (menu == 2) {
             role = "screen"
             act_as_screen()
         }
-    } else if (menu > menuChoices) {
-        menu = 0
     }
 }
 /**
