@@ -18,6 +18,7 @@ function vec (vector: any[], component: string) {
 function act_as_screen () {
     screens += 1
     basic.showNumber(screens)
+    screenPairing(screens)
 }
 function set_vec (vector: any[], component: string, value: number) {
     if (component == "x") {
@@ -42,6 +43,7 @@ function act_as_controller () {
     board_size = get_virtual_screen_size()
     // To avoid error if button is pressed before the game starts
     direction = x_y(0, 1)
+    radio.sendString("controller")
     while (true) {
         do_round()
     }
@@ -162,9 +164,6 @@ function queue_tone (tone: number, duration: number) {
 function vec_from_2d_index (_2d_index2: number) {
     return x_y(_2d_index2 % vec(board_size, "x"), Math.floor(_2d_index2 / vec(board_size, "x")))
 }
-/**
- * Board
- */
 function show_end_message (_type: string) {
     led.setBrightness(255)
     basic.clearScreen()
@@ -204,6 +203,9 @@ function que_start_chime () {
 function clear_virtual_screen () {
     basic.clearScreen()
 }
+/**
+ * Board
+ */
 // because arrays cannot store other arrays we are forced to flatten vectors to a single index
 function _2d_index (pos: any[]) {
     for (let xy of XY) {
@@ -214,6 +216,12 @@ function _2d_index (pos: any[]) {
     }
     return coerce_to_number(vec(pos, "x") + vec(pos, "y") * vec(board_size, "x"))
 }
+radio.onReceivedString(function (receivedString) {
+    if (receivedString == "controller" && role == "screen") {
+        radio.sendNumber(screens)
+        radio.sendString(screen_place)
+    }
+})
 // Rotate in 90 degree turns.
 // + clockwise
 // - counter-clockwise
@@ -228,6 +236,13 @@ function rotate_vector (vector: any[], turns: number): any {
     }
     // We have rotated one turn closer to the base case of turns = 0. Recurse with one less turn in the same direction.
     return rotate_vector(rotate_vector_new, sign(turns) * (Math.abs(turns) - 1))
+}
+function screenPairing (screen_number: number) {
+    if (screen_number == 1) {
+        screen_place = "left"
+    } else if (screen_number == 2) {
+        screen_place = "right"
+    }
 }
 function board_value (name: string) {
     if (name == "air") {
@@ -279,7 +294,18 @@ function round_loop () {
     return ""
 }
 function get_virtual_screen_size () {
-    return x_y(5, 5)
+    // if screens = 3?
+    if (screens == 0) {
+        return x_y(5, 5)
+    } else if (screens == 1) {
+        return x_y(5, 5)
+    } else if (screens == 2) {
+        return x_y(10, 5)
+    } else if (screens == 4) {
+        return x_y(10, 10)
+    } else {
+        return x_y(5, 5)
+    }
 }
 function blink_images (images2: any[], speed_multiplier: number) {
     basic.clearScreen()
@@ -313,7 +339,7 @@ function show_main_menu () {
         # . # . #
         `)
     menuChoices = 2
-    menu = 1
+    menu = 0
     inTheMenu = true
 }
 /**
@@ -329,6 +355,7 @@ let next_head_pos_value = 0
 let next_head_pos: number[] = []
 let head_pos: number[] = []
 let rotate_vector_new: number[] = []
+let screen_place = ""
 let n: any = null
 let spawn_fruit_attempt = 0
 let y = 0
