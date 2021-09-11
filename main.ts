@@ -151,6 +151,10 @@ function coerce_to_number (probably_number: number) {
 function update_virtual_screen_pixel (pos: any[], brightness: number) {
     x = vec(pos, "x")
     y = vec(board_size, "y") - 1 - vec(pos, "y")
+    // Erik M, test att spegla skärm. Skickar x, y och brightness
+    radio.sendValue("x", x)
+    radio.sendValue("y", y)
+    radio.sendValue("brightness", brightness)
     if (brightness == 0) {
         led.unplot(x, y)
     } else {
@@ -240,10 +244,27 @@ function rotate_vector (vector: any[], turns: number): any {
 function screenPairing (screen_number: number) {
     if (screen_number == 1) {
         screen_place = "left"
+        // Erik M, tömmer skärm för att kunna ta emot pixlar
+        basic.clearScreen()
     } else if (screen_number == 2) {
         screen_place = "right"
     }
 }
+radio.onReceivedValue(function (name, value) {
+    if (name == "x") {
+        Xreceived = value
+    } else if (name == "y") {
+        Yreceived = value
+    } else if (name == "brightness") {
+        Breceived = value
+        // Erik M, plottar/unplottar när 3e parametern "brightness" är mottagen
+        if (Breceived == 0) {
+            led.unplot(Xreceived, Yreceived)
+        } else {
+            led.plotBrightness(Xreceived, Yreceived, Breceived)
+        }
+    }
+})
 function board_value (name: string) {
     if (name == "air") {
         return 0
@@ -354,6 +375,9 @@ function x_y (x: number, y: number) {
 let next_head_pos_value = 0
 let next_head_pos: number[] = []
 let head_pos: number[] = []
+let Breceived = 0
+let Yreceived = 0
+let Xreceived = 0
 let rotate_vector_new: number[] = []
 let screen_place = ""
 let n: any = null
