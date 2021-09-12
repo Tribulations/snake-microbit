@@ -11,9 +11,6 @@
  * Virtual screen
  */
 /**
- * Main
- */
-/**
  * Numbers
  */
 // add error?
@@ -48,6 +45,9 @@ function on_button (button: number, down: boolean) {
         undetermined_on_button(button, down)
     }
 }
+control.onEvent(101, EventBusValue.MICROBIT_EVT_ANY, function () {
+    act_as_screen()
+})
 // You cannot enter NaN. This can be used to enter it.
 function NaN2 () {
     return 1 / 0
@@ -127,20 +127,38 @@ function undetermined_on_button (button: number, down: boolean) {
             }
             if (menu == 1) {
                 // C = Controller
-                basic.showString("C")
+                images.createImage(`
+                    . . # # .
+                    . # . . .
+                    . # . . .
+                    . # . . .
+                    . . # # .
+                    `).showImage(0, 0)
             } else if (menu == 2) {
                 // S = Screen
-                basic.showString("S")
+                images.createImage(`
+                    . . # # .
+                    . # . . .
+                    . . # . .
+                    . . . # .
+                    . # # . .
+                    `).showImage(0, 0)
             }
         } else if (button == 1) {
             if (menu == 1) {
                 role = "controller"
                 inTheMenu = false
-                act_as_controller()
+                control.raiseEvent(
+                100,
+                EventBusValue.MICROBIT_EVT_ANY
+                )
             } else if (menu == 2) {
                 role = "screen"
                 inTheMenu = false
-                act_as_screen()
+                control.raiseEvent(
+                101,
+                EventBusValue.MICROBIT_EVT_ANY
+                )
             }
         }
     }
@@ -179,6 +197,9 @@ function vec_from_2d_index (_2d_index2: number) {
 }
 /**
  * Render
+ */
+/**
+ * Board
  */
 function show_end_message (_type: string) {
     led.setBrightness(255)
@@ -220,9 +241,6 @@ function clear_virtual_screen () {
     basic.clearScreen()
     radio.sendString("clrscrn")
 }
-/**
- * Board
- */
 // because arrays cannot store other arrays we are forced to flatten vectors to a single index
 function _2d_index (pos: any[]) {
     for (let xy of XY) {
@@ -360,6 +378,9 @@ function sign (n: number) {
     }
     return 0
 }
+control.onEvent(100, EventBusValue.MICROBIT_EVT_ANY, function () {
+    act_as_controller()
+})
 function show_main_menu () {
     // Nice
     radio.setGroup(69)
@@ -382,6 +403,9 @@ function show_main_menu () {
 function x_y (x: number, y: number) {
     return [x, y]
 }
+/**
+ * Main
+ */
 // -1 because as starting at 0 means the total number of iterations is n + 1
 // (kind of weird to have everything start at zero but not add a cleaner way to iterate up to but not including a number like length of an array)
 // -1 because we have already added a zero in the beginning to help with type inference
