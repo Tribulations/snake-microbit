@@ -1,14 +1,11 @@
 /**
- * Virtual screen
- */
-/**
- * Virtual screen
- */
-/**
  * Radio
  */
 /**
  * Virtual screen
+ */
+/**
+ * Main
  */
 /**
  * Numbers
@@ -26,9 +23,9 @@ function act_as_screen () {
     // The increment of "screens" are broadcasted from screen-unit to other screen-units (if any) so that they will be assigned the next screenNo when B is pressed
     // The increment is also received by the controller so it can keep track of no of screens and set a correct "virtual screen size"
     radio.sendString("addscrn")
-    screenNo = screens
+    screen_no = screens
     // screenNo is the units ID so it will know its position on the board (1 - 2 - 3)
-    basic.showNumber(screenNo)
+    basic.showNumber(screen_no)
 }
 function set_vec (vector: any[], component: string, value: number) {
     if (component == "x") {
@@ -48,10 +45,6 @@ function on_button (button: number, down: boolean) {
 control.onEvent(101, EventBusValue.MICROBIT_EVT_ANY, function () {
     act_as_screen()
 })
-// You cannot enter NaN. This can be used to enter it.
-function NaN2 () {
-    return 1 / 0
-}
 function act_as_controller () {
     board_size = get_virtual_screen_size()
     // To avoid error if button is pressed before the game starts
@@ -122,7 +115,7 @@ function undetermined_on_button (button: number, down: boolean) {
     if (down) {
         if (button == -1) {
             menu += 1
-            if (menu > menuChoices) {
+            if (menu > menu_choices) {
                 menu = 1
             }
             if (menu == 1) {
@@ -147,14 +140,14 @@ function undetermined_on_button (button: number, down: boolean) {
         } else if (button == 1) {
             if (menu == 1) {
                 role = "controller"
-                inTheMenu = false
+                in_the_menu = false
                 control.raiseEvent(
                 100,
                 EventBusValue.MICROBIT_EVT_ANY
                 )
             } else if (menu == 2) {
                 role = "screen"
-                inTheMenu = false
+                in_the_menu = false
                 control.raiseEvent(
                 101,
                 EventBusValue.MICROBIT_EVT_ANY
@@ -169,10 +162,6 @@ function clear_board () {
     for (let index = 0; index < vec(board_size, "x") * vec(board_size, "y"); index++) {
         board.push(board_value("air"))
     }
-}
-// needed because some functions like "array get value at index" complains
-function coerce_to_number (probably_number: number) {
-    return parseFloat(convertToText(probably_number))
 }
 function update_virtual_screen_pixel (pos: any[], brightness: number) {
     x = vec(pos, "x")
@@ -198,9 +187,6 @@ function vec_from_2d_index (_2d_index2: number) {
 /**
  * Render
  */
-/**
- * Board
- */
 function show_end_message (_type: string) {
     led.setBrightness(255)
     basic.clearScreen()
@@ -216,7 +202,7 @@ function show_end_message (_type: string) {
             # # . # #
             . # # # .
             . # . # .
-            `).showImage(0, image_blink_ms)
+            `).showImage(0, 400)
         basic.pause(700)
     }
 }
@@ -241,6 +227,9 @@ function clear_virtual_screen () {
     basic.clearScreen()
     radio.sendString("clrscrn")
 }
+/**
+ * Board
+ */
 // because arrays cannot store other arrays we are forced to flatten vectors to a single index
 function _2d_index (pos: any[]) {
     for (let xy of XY) {
@@ -249,7 +238,7 @@ function _2d_index (pos: any[]) {
             return -1
         }
     }
-    return coerce_to_number(vec(pos, "x") + vec(pos, "y") * vec(board_size, "x"))
+    return vec(pos, "x") + vec(pos, "y") * vec(board_size, "x")
 }
 radio.onReceivedString(function (receivedString) {
     if (receivedString == "addscrn") {
@@ -284,12 +273,12 @@ radio.onReceivedValue(function (name, value) {
         // Checks if received pixel is part of actual screenNo and then calls for it to be plotted/unplotted.
         // 
         // If screenNo is 2 or 3, the x-value is adjusted from the "virtual x" to something that could be plotted on the  screen (0->4)
-        if (screenNo == 1 && x <= 4) {
+        if (screen_no == 1 && x <= 4) {
             plotPos()
-        } else if (screenNo == 2 && (x <= 5 && x <= 9)) {
+        } else if (screen_no == 2 && (x <= 5 && x <= 9)) {
             x += -5
             plotPos()
-        } else if (screenNo == 3 && x <= 10) {
+        } else if (screen_no == 3 && x <= 10) {
             x += -10
             plotPos()
         }
@@ -357,13 +346,6 @@ function get_virtual_screen_size () {
         return x_y(5, 5)
     }
 }
-function blink_images (images2: any[], speed_multiplier: number) {
-    basic.clearScreen()
-    for (let index = 0; index <= images2.length - 1; index++) {
-        images2[index].showImage(0)
-        basic.pause(image_blink_ms * speed_multiplier)
-    }
-}
 function add_vectors (a: any[], b: any[]) {
     for (let xy of XY) {
         set_vec(add_vectors_output, xy, vec(a, xy) + vec(b, xy))
@@ -393,9 +375,9 @@ function show_main_menu () {
         # . # . #
         # . # . #
         `)
-    menuChoices = 2
+    menu_choices = 2
     menu = 0
-    inTheMenu = true
+    in_the_menu = true
 }
 /**
  * Vector
@@ -403,9 +385,6 @@ function show_main_menu () {
 function x_y (x: number, y: number) {
     return [x, y]
 }
-/**
- * Main
- */
 // -1 because as starting at 0 means the total number of iterations is n + 1
 // (kind of weird to have everything start at zero but not add a cleaner way to iterate up to but not including a number like length of an array)
 // -1 because we have already added a zero in the beginning to help with type inference
@@ -415,8 +394,8 @@ let head_pos: number[] = []
 let rotate_vector_new: number[] = []
 let n: any = null
 let spawn_fruit_attempt = 0
-let inTheMenu = false
-let menuChoices = 0
+let in_the_menu = false
+let menu_choices = 0
 let menu = 0
 let do_round_round_loop_result = ""
 let snake_positions: number[] = []
@@ -430,18 +409,16 @@ let x: any = null
 let bright = 0
 let direction: number[] = []
 let board_size: number[] = []
-let screenNo = 0
+let screen_no = 0
 let screens = 0
 let role = ""
 let type__intensity: number[] = []
-let image_blink_ms = 0
 let add_vectors_output: number[] = []
 let tone_queue: number[] = []
 let XY: string[] = []
 XY = ["x", "y"]
 tone_queue = []
 add_vectors_output = [0, 0]
-image_blink_ms = 300
 // See "board value" function for the order / names of the types of objects that can be on the board.
 type__intensity = [
 0,
