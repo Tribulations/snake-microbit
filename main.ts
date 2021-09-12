@@ -8,8 +8,18 @@
  * Main
  */
 /**
+ * Render
+ */
+/**
  * Numbers
  */
+function trackScore () {
+    led.setBrightness(25)
+    led.plotBarGraph(
+    score,
+    board.length
+    )
+}
 // add error?
 function vec (vector: any[], component: string) {
     if (component == "x") {
@@ -184,14 +194,17 @@ function queue_tone (tone: number, duration: number) {
 function vec_from_2d_index (_2d_index2: number) {
     return x_y(_2d_index2 % vec(board_size, "x"), Math.floor(_2d_index2 / vec(board_size, "x")))
 }
-/**
- * Render
- */
 function show_end_message (_type: string) {
     led.setBrightness(255)
     basic.clearScreen()
     if (_type == "win") {
-    	
+        for (let index = 0; index < 2; index++) {
+            queue_tone(262, 80)
+            queue_tone(330, 80)
+            queue_tone(392, 80)
+            queue_tone(523, 200)
+        }
+        basic.showString("You win!")
     } else if (_type == "loss") {
         queue_tone(200, 200)
         queue_tone(200 * 2 ** -1, 500)
@@ -205,6 +218,10 @@ function show_end_message (_type: string) {
             `).showImage(0, 400)
         basic.pause(700)
     }
+    basic.clearScreen()
+    basic.showNumber(score)
+    basic.pause(700)
+    score = 0
 }
 function spawn_fruit () {
     while (true) {
@@ -305,6 +322,10 @@ function on_eat_fruit () {
     queue_tone(698, 40)
     queue_tone(784, 40)
     snake_length_goal += 1
+    score += 1
+    if (screens > 0) {
+        trackScore()
+    }
     spawn_random_n_of_fruits()
 }
 function round_loop () {
@@ -402,7 +423,6 @@ let snake_positions: number[] = []
 let snake_length_goal = 0
 let last_traveled_direction: number[] = []
 let running = false
-let board: number[] = []
 let getset_at_2d_index = 0
 let y = 0
 let x: any = null
@@ -410,6 +430,8 @@ let bright = 0
 let direction: number[] = []
 let board_size: number[] = []
 let screen_no = 0
+let board: number[] = []
+let score = 0
 let screens = 0
 let role = ""
 let type__intensity: number[] = []
