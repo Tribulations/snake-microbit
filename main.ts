@@ -1,8 +1,17 @@
 /**
- * Main
+ * Virtual screen
  */
 /**
- * Render
+ * Virtual screen
+ */
+/**
+ * Radio
+ */
+/**
+ * Virtual screen
+ */
+/**
+ * Main
  */
 /**
  * Numbers
@@ -17,8 +26,12 @@ function vec (vector: any[], component: string) {
 }
 function act_as_screen () {
     screens += 1
-    basic.showNumber(screens)
-    screenPairing(screens)
+    // The increment of "screens" are broadcasted from screen-unit to other screen-units (if any) so that they will be assigned the next screenNo when B is pressed
+    // The increment is also received by the controller so it can keep track of no of screens and set a correct "virtual screen size"
+    radio.sendString("addscrn")
+    screenNo = screens
+    // screenNo is the units ID so it will know its position on the board (1 - 2 - 3)
+    basic.showNumber(screenNo)
 }
 function set_vec (vector: any[], component: string, value: number) {
     if (component == "x") {
@@ -43,9 +56,15 @@ function act_as_controller () {
     board_size = get_virtual_screen_size()
     // To avoid error if button is pressed before the game starts
     direction = x_y(0, 1)
-    radio.sendString("controller")
     while (true) {
         do_round()
+    }
+}
+function plotPos () {
+    if (bright == 0) {
+        led.unplot(x, y)
+    } else {
+        led.plotBrightness(x, y, bright)
     }
 }
 function board_get_at (pos: any[]) {
@@ -107,21 +126,11 @@ function undetermined_on_button (button: number, down: boolean) {
                 menu = 1
             }
             if (menu == 1) {
-                images.createImage(`
-                    . . # . .
-                    . # # . .
-                    . . # . .
-                    . . # . .
-                    . # # # .
-                    `).showImage(0, 0)
+                // C = Controller
+                basic.showString("C")
             } else if (menu == 2) {
-                images.createImage(`
-                    . # # . .
-                    . . . # .
-                    . . # # .
-                    . # . . .
-                    . # # # .
-                    `).showImage(0, 0)
+                // S = Screen
+                basic.showString("S")
             }
         } else if (button == 1) {
             if (menu == 1) {
@@ -147,18 +156,18 @@ function clear_board () {
 function coerce_to_number (probably_number: number) {
     return parseFloat(convertToText(probably_number))
 }
-// TODO: Spelet har abstraherat bort skärmen. Byt ut den här implementeringen av en "virtual screen" med en som stöder flera skärmar.
 function update_virtual_screen_pixel (pos: any[], brightness: number) {
     x = vec(pos, "x")
     y = vec(board_size, "y") - 1 - vec(pos, "y")
-    // Erik M, test att spegla skärm. Skickar x, y och brightness
-    radio.sendValue("x", x)
-    radio.sendValue("y", y)
-    radio.sendValue("brightness", brightness)
-    if (brightness == 0) {
-        led.unplot(x, y)
+    // Sends x,y & brightness to the Screens if at least 1 screen have been registered
+    // Else: plots screen pixel on controller screen
+    if (screens > 0) {
+        radio.sendValue("x", x)
+        radio.sendValue("y", y)
+        radio.sendValue("bright", brightness)
     } else {
-        led.plotBrightness(x, y, brightness)
+        bright = brightness
+        plotPos()
     }
 }
 function queue_tone (tone: number, duration: number) {
@@ -168,6 +177,9 @@ function queue_tone (tone: number, duration: number) {
 function vec_from_2d_index (_2d_index2: number) {
     return x_y(_2d_index2 % vec(board_size, "x"), Math.floor(_2d_index2 / vec(board_size, "x")))
 }
+/**
+ * Render
+ */
 function show_end_message (_type: string) {
     led.setBrightness(255)
     basic.clearScreen()
@@ -206,6 +218,7 @@ function que_start_chime () {
 }
 function clear_virtual_screen () {
     basic.clearScreen()
+    radio.sendString("clrscrn")
 }
 /**
  * Board
@@ -221,9 +234,10 @@ function _2d_index (pos: any[]) {
     return coerce_to_number(vec(pos, "x") + vec(pos, "y") * vec(board_size, "x"))
 }
 radio.onReceivedString(function (receivedString) {
-    if (receivedString == "controller" && role == "screen") {
-        radio.sendNumber(screens)
-        radio.sendString(screen_place)
+    if (receivedString == "addscrn") {
+        screens += 1
+    } else if (receivedString == "clrscrn") {
+        basic.clearScreen()
     }
 })
 // Rotate in 90 degree turns.
@@ -241,27 +255,25 @@ function rotate_vector (vector: any[], turns: number): any {
     // We have rotated one turn closer to the base case of turns = 0. Recurse with one less turn in the same direction.
     return rotate_vector(rotate_vector_new, sign(turns) * (Math.abs(turns) - 1))
 }
-function screenPairing (screen_number: number) {
-    if (screen_number == 1) {
-        screen_place = "left"
-        // Erik M, tömmer skärm för att kunna ta emot pixlar
-        basic.clearScreen()
-    } else if (screen_number == 2) {
-        screen_place = "right"
-    }
-}
 radio.onReceivedValue(function (name, value) {
+    // Receives and saves the virtual screen pixel in variables of x,y & brightness sent from the controlle
     if (name == "x") {
-        Xreceived = value
+        x = value
     } else if (name == "y") {
-        Yreceived = value
-    } else if (name == "brightness") {
-        Breceived = value
-        // Erik M, plottar/unplottar när 3e parametern "brightness" är mottagen
-        if (Breceived == 0) {
-            led.unplot(Xreceived, Yreceived)
-        } else {
-            led.plotBrightness(Xreceived, Yreceived, Breceived)
+        y = value
+    } else if (name == "bright") {
+        bright = value
+        // Checks if received pixel is part of actual screenNo and then calls for it to be plotted/unplotted.
+        // 
+        // If screenNo is 2 or 3, the x-value is adjusted from the "virtual x" to something that could be plotted on the  screen (0->4)
+        if (screenNo == 1 && x <= 4) {
+            plotPos()
+        } else if (screenNo == 2 && (x <= 5 && x <= 9)) {
+            x += -5
+            plotPos()
+        } else if (screenNo == 3 && x <= 10) {
+            x += -10
+            plotPos()
         }
     }
 })
@@ -315,15 +327,14 @@ function round_loop () {
     return ""
 }
 function get_virtual_screen_size () {
-    // if screens = 3?
     if (screens == 0) {
         return x_y(5, 5)
     } else if (screens == 1) {
         return x_y(5, 5)
     } else if (screens == 2) {
         return x_y(10, 5)
-    } else if (screens == 4) {
-        return x_y(10, 10)
+    } else if (screens == 3) {
+        return x_y(15, 5)
     } else {
         return x_y(5, 5)
     }
@@ -352,6 +363,8 @@ function sign (n: number) {
 function show_main_menu () {
     // Nice
     radio.setGroup(69)
+    // For simulator only, to make 2nd Micro:bit appear
+    radio.sendNumber(0)
     basic.showLeds(`
         . # . . #
         # . # # #
@@ -375,15 +388,9 @@ function x_y (x: number, y: number) {
 let next_head_pos_value = 0
 let next_head_pos: number[] = []
 let head_pos: number[] = []
-let Breceived = 0
-let Yreceived = 0
-let Xreceived = 0
 let rotate_vector_new: number[] = []
-let screen_place = ""
 let n: any = null
 let spawn_fruit_attempt = 0
-let y = 0
-let x: any = null
 let inTheMenu = false
 let menuChoices = 0
 let menu = 0
@@ -394,8 +401,12 @@ let last_traveled_direction: number[] = []
 let running = false
 let board: number[] = []
 let getset_at_2d_index = 0
+let y = 0
+let x: any = null
+let bright = 0
 let direction: number[] = []
 let board_size: number[] = []
+let screenNo = 0
 let screens = 0
 let role = ""
 let type__intensity: number[] = []
@@ -410,11 +421,12 @@ image_blink_ms = 300
 // See "board value" function for the order / names of the types of objects that can be on the board.
 type__intensity = [
 0,
-100,
-200,
-255
+150,
+255,
+25
 ]
 role = "undetermined"
+screens = 0
 show_main_menu()
 control.inBackground(function () {
     while (true) {
