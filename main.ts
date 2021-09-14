@@ -16,7 +16,7 @@
 function trackScore () {
     led.setBrightness(25)
     led.plotBarGraph(
-    snake_length_goal,
+    snake_length_goal__score,
     board.length
     )
 }
@@ -90,14 +90,17 @@ function controller_on_button (button: number, down: boolean) {
 }
 function do_round () {
     clear_board()
-    snake_length_goal = 2
+    snake_length_goal__score = 2
     snake_positions = [_2d_index(x_y(2, 0))]
     fruit_positions = []
-    spawn_fruit()
     direction = x_y(0, 1)
     update_snake()
+    spawn_fruit()
     while (!(input.buttonIsPressed(Button.A) || input.buttonIsPressed(Button.B))) {
         // To avoid stopping progress on tone queue
+        basic.pause(5)
+    }
+    while (input.buttonIsPressed(Button.A) || input.buttonIsPressed(Button.B)) {
         basic.pause(5)
     }
     que_start_chime()
@@ -107,7 +110,7 @@ function do_round () {
         if (running == true) {
             do_round_round_loop_result = update_snake()
             if (do_round_round_loop_result != "") {
-                show_end_message(do_round_round_loop_result)
+                end_round(do_round_round_loop_result)
                 break;
             }
         }
@@ -203,35 +206,6 @@ function queue_tone (tone: number, duration: number) {
 function vec_from_2d_index (_2d_index2: number) {
     return x_y(_2d_index2 % vec(board_size, "x"), Math.floor(_2d_index2 / vec(board_size, "x")))
 }
-function show_end_message (_type: string) {
-    led.setBrightness(255)
-    basic.clearScreen()
-    if (_type == "win") {
-        for (let index = 0; index < 2; index++) {
-            queue_tone(262, 80)
-            queue_tone(330, 80)
-            queue_tone(392, 80)
-            queue_tone(523, 200)
-        }
-        basic.showString("You win!")
-    } else if (_type == "loss") {
-        queue_tone(200, 200)
-        queue_tone(200 * 2 ** -1, 500)
-        // This is supposed to be a skull...
-        images.createImage(`
-            . # # # .
-            # . # . #
-            # # . # #
-            . # # # .
-            . # . # .
-            `).showImage(0, 400)
-        basic.pause(700)
-    }
-    basic.clearScreen()
-    basic.showNumber(snake_length_goal)
-    basic.pause(700)
-    score = 0
-}
 function spawn_fruit () {
     while (true) {
         spawn_fruit_attempt = randint(0, board.length - 1)
@@ -249,6 +223,35 @@ function que_start_chime () {
     queue_tone(262, 80)
     queue_tone(330, 80)
     queue_tone(392, 80)
+}
+function end_round (message_type: string) {
+    fruit_positions = []
+    led.setBrightness(255)
+    basic.clearScreen()
+    if (message_type == "win") {
+        for (let index = 0; index < 2; index++) {
+            queue_tone(262, 80)
+            queue_tone(330, 80)
+            queue_tone(392, 80)
+            queue_tone(523, 200)
+        }
+        basic.showString("You win!")
+    } else if (message_type == "loss") {
+        queue_tone(200, 200)
+        queue_tone(200 * 2 ** -1, 500)
+        // This is supposed to be a skull...
+        images.createImage(`
+            . # # # .
+            # . # . #
+            # # . # #
+            . # # # .
+            . # . # .
+            `).showImage(0, 400)
+        basic.pause(700)
+    }
+    basic.clearScreen()
+    basic.showNumber(snake_length_goal__score)
+    basic.pause(700)
 }
 function clear_virtual_screen () {
     basic.clearScreen()
@@ -307,14 +310,14 @@ function update_snake () {
     if (next_head_pos_value != board_value("air")) {
         if (next_head_pos_value == board_value("fruit")) {
             on_eat_fruit(next_head_pos)
-            if (snake_length_goal >= board.length) {
+            if (snake_length_goal__score >= board.length) {
                 return "win"
             }
         } else {
             return "loss"
         }
     }
-    if (snake_positions.length > snake_length_goal) {
+    if (snake_positions.length > snake_length_goal__score) {
         board_set_at(vec_from_2d_index(snake_positions.pop()), board_value("air"))
     }
     snake_positions.unshift(_2d_index(next_head_pos))
@@ -366,7 +369,7 @@ function on_eat_fruit (pos: any[]) {
     queue_tone(698, 40)
     queue_tone(784, 40)
     fruit_positions.removeAt(fruit_positions.indexOf(_2d_index(pos)))
-    snake_length_goal += 1
+    snake_length_goal__score += 1
     if (screens > 0) {
         trackScore()
     }
@@ -433,7 +436,6 @@ let head_pos: number[] = []
 let rotate_vector_new: number[] = []
 let n: any = null
 let spawn_fruit_attempt = 0
-let score = 0
 let in_the_menu = false
 let menu_choices = 0
 let menu = 0
@@ -450,7 +452,7 @@ let board_size: number[] = []
 let fruit_positions: number[] = []
 let screen_no = 0
 let board: number[] = []
-let snake_length_goal = 0
+let snake_length_goal__score = 0
 let screens = 0
 let role = ""
 let add_vectors_output: number[] = []
