@@ -106,6 +106,7 @@ function do_round () {
     que_start_chime()
     running = true
     while (true) {
+        basic.pause(350)
         // In case the game is paused by shaking.
         if (running == true) {
             do_round_round_loop_result = update_snake()
@@ -114,7 +115,6 @@ function do_round () {
                 break;
             }
         }
-        basic.pause(400)
     }
     running = false
 }
@@ -307,15 +307,13 @@ function update_snake () {
     }
     last_traveled_direction = direction
     next_head_pos_value = board_get_at(next_head_pos)
-    if (next_head_pos_value != board_value("air")) {
-        if (next_head_pos_value == board_value("fruit")) {
-            on_eat_fruit(next_head_pos)
-            if (snake_length_goal__score >= board.length) {
-                return "win"
-            }
-        } else {
-            return "loss"
+    if (fruit_positions.indexOf(_2d_index(next_head_pos)) != -1) {
+        on_eat_fruit(next_head_pos)
+        if (snake_length_goal__score >= board.length) {
+            return "win"
         }
+    } else if (next_head_pos_value != board_value("air")) {
+        return "loss"
     }
     if (snake_positions.length > snake_length_goal__score) {
         board_set_at(vec_from_2d_index(snake_positions.pop()), board_value("air"))
