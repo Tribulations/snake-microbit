@@ -109,9 +109,10 @@ function do_round () {
         basic.pause(350)
         // In case the game is paused by shaking.
         if (running == true) {
-            do_round_round_loop_result = update_snake()
-            if (do_round_round_loop_result != "") {
-                end_round(do_round_round_loop_result)
+            round_end_state = ""
+            update_snake()
+            if (round_end_state != "") {
+                end_round(round_end_state)
                 break;
             }
         }
@@ -309,20 +310,16 @@ function update_snake () {
     next_head_pos_value = board_get_at(next_head_pos)
     if (fruit_positions.indexOf(_2d_index(next_head_pos)) != -1) {
         on_eat_fruit(next_head_pos)
-        if (snake_length_goal__score >= board.length) {
-            return "win"
-        }
     } else if (next_head_pos_value != board_value("air")) {
-        return "loss"
+        round_end_state = "loss"
     }
-    if (snake_positions.length > snake_length_goal__score) {
+    if (snake_positions.length >= snake_length_goal__score) {
         board_set_at(vec_from_2d_index(snake_positions.pop()), board_value("air"))
     }
     snake_positions.unshift(_2d_index(next_head_pos))
     for (let index = 0; index <= snake_positions.length - 1; index++) {
-        board_set_at(vec_from_2d_index(snake_positions[snake_positions.length - 1 - index]), index / snake_positions.length * 255 + 0)
+        board_set_at(vec_from_2d_index(snake_positions[snake_positions.length - 1 - index]), index / (snake_positions.length - 1) * 255 + 1)
     }
-    return ""
 }
 radio.onReceivedValue(function (name, value) {
     // Receives and saves the virtual screen pixel in variables of x,y & brightness sent from the controlle
@@ -371,7 +368,11 @@ function on_eat_fruit (pos: any[]) {
     if (screens > 0) {
         trackScore()
     }
-    spawn_random_n_of_fruits()
+    if (snake_length_goal__score >= board.length) {
+        round_end_state = "win"
+    } else {
+        spawn_fruit()
+    }
 }
 function get_virtual_screen_size () {
     if (screens == 0) {
@@ -437,7 +438,7 @@ let spawn_fruit_attempt = 0
 let in_the_menu = false
 let menu_choices = 0
 let menu = 0
-let do_round_round_loop_result = ""
+let round_end_state = ""
 let snake_positions: number[] = []
 let last_traveled_direction: number[] = []
 let running = false
