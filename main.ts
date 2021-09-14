@@ -16,7 +16,7 @@
 function trackScore () {
     led.setBrightness(25)
     led.plotBarGraph(
-    score,
+    snake_length_goal,
     board.length
     )
 }
@@ -42,6 +42,11 @@ function set_vec (vector: any[], component: string, value: number) {
         vector[0] = value
     } else if (component == "y") {
         vector[1] = value
+    }
+}
+function render_fruits () {
+    for (let value of fruit_positions) {
+        update_virtual_screen_pixel(vec_from_2d_index(value), Math.round(126 + Math.sin(input.runningTime() / 250) * 126))
     }
 }
 // Called whenever a button changes state. The button is identified by its X position where the logo is at 0.
@@ -87,9 +92,10 @@ function do_round () {
     clear_board()
     snake_length_goal = 2
     snake_positions = [_2d_index(x_y(2, 0))]
+    fruit_positions = []
     spawn_fruit()
     direction = x_y(0, 1)
-    round_loop()
+    update_snake()
     while (!(input.buttonIsPressed(Button.A) || input.buttonIsPressed(Button.B))) {
         // To avoid stopping progress on tone queue
         basic.pause(5)
@@ -97,17 +103,13 @@ function do_round () {
     que_start_chime()
     running = true
     while (true) {
-        // If gamed is paused by shaking the controller, "running" is set to False so it stays in this pause-loop until "running" is set to True again (by another shake) and it breaks the loop
-        while (true) {
-            if (running == true) {
+        // In case the game is paused by shaking.
+        if (running == true) {
+            do_round_round_loop_result = update_snake()
+            if (do_round_round_loop_result != "") {
+                show_end_message(do_round_round_loop_result)
                 break;
             }
-            basic.pause(400)
-        }
-        do_round_round_loop_result = round_loop()
-        if (do_round_round_loop_result != "") {
-            show_end_message(do_round_round_loop_result)
-            break;
         }
         basic.pause(400)
     }
@@ -119,7 +121,7 @@ function board_set_at (pos: any[], value: number) {
         return -1
     }
     board[getset_at_2d_index] = value
-    update_virtual_screen_pixel(pos, type__intensity[value])
+    update_virtual_screen_pixel(pos, value)
     return value
 }
 function spawn_random_n_of_fruits () {
@@ -226,7 +228,7 @@ function show_end_message (_type: string) {
         basic.pause(700)
     }
     basic.clearScreen()
-    basic.showNumber(score)
+    basic.showNumber(snake_length_goal)
     basic.pause(700)
     score = 0
 }
@@ -235,6 +237,7 @@ function spawn_fruit () {
         spawn_fruit_attempt = randint(0, board.length - 1)
         if (board[spawn_fruit_attempt] == board_value("air")) {
             board_set_at(vec_from_2d_index(spawn_fruit_attempt), board_value("fruit"))
+            fruit_positions.push(spawn_fruit_attempt)
             break;
         }
     }
@@ -293,6 +296,33 @@ input.onGesture(Gesture.Shake, function () {
         running = true
     }
 })
+function update_snake () {
+    head_pos = vec_from_2d_index(snake_positions[0])
+    next_head_pos = add_vectors(head_pos, direction)
+    if (last_traveled_direction != direction) {
+        queue_tone(523, 20)
+    }
+    last_traveled_direction = direction
+    next_head_pos_value = board_get_at(next_head_pos)
+    if (next_head_pos_value != board_value("air")) {
+        if (next_head_pos_value == board_value("fruit")) {
+            on_eat_fruit(next_head_pos)
+            if (snake_length_goal >= board.length) {
+                return "win"
+            }
+        } else {
+            return "loss"
+        }
+    }
+    if (snake_positions.length > snake_length_goal) {
+        board_set_at(vec_from_2d_index(snake_positions.pop()), board_value("air"))
+    }
+    snake_positions.unshift(_2d_index(next_head_pos))
+    for (let index = 0; index <= snake_positions.length - 1; index++) {
+        board_set_at(vec_from_2d_index(snake_positions[snake_positions.length - 1 - index]), index / snake_positions.length * 255 + 0)
+    }
+    return ""
+}
 radio.onReceivedValue(function (name, value) {
     // Receives and saves the virtual screen pixel in variables of x,y & brightness sent from the controlle
     if (name == "x") {
@@ -330,43 +360,17 @@ function board_value (name: string) {
 control.onEvent(EventBusSource.MICROBIT_ID_BUTTON_A, EventBusValue.MICROBIT_EVT_ANY, function () {
     on_button(-1, control.eventValue() == EventBusValue.MICROBIT_BUTTON_EVT_DOWN)
 })
-function on_eat_fruit () {
+function on_eat_fruit (pos: any[]) {
     queue_tone(523, 80)
     queue_tone(659, 40)
     queue_tone(698, 40)
     queue_tone(784, 40)
+    fruit_positions.removeAt(fruit_positions.indexOf(_2d_index(pos)))
     snake_length_goal += 1
-    score += 1
     if (screens > 0) {
         trackScore()
     }
     spawn_random_n_of_fruits()
-}
-function round_loop () {
-    head_pos = vec_from_2d_index(snake_positions[0])
-    next_head_pos = add_vectors(head_pos, direction)
-    if (last_traveled_direction != direction) {
-        queue_tone(523, 20)
-    }
-    last_traveled_direction = direction
-    next_head_pos_value = board_get_at(next_head_pos)
-    if (next_head_pos_value != board_value("air")) {
-        if (next_head_pos_value == board_value("fruit")) {
-            on_eat_fruit()
-            if (snake_length_goal >= board.length) {
-                return "win"
-            }
-        } else {
-            return "loss"
-        }
-    }
-    snake_positions.unshift(_2d_index(next_head_pos))
-    board_set_at(head_pos, board_value("tail"))
-    board_set_at(next_head_pos, board_value("head"))
-    if (!(snake_positions.length <= snake_length_goal)) {
-        board_set_at(vec_from_2d_index(snake_positions.pop()), board_value("air"))
-    }
-    return ""
 }
 function get_virtual_screen_size () {
     if (screens == 0) {
@@ -429,12 +433,12 @@ let head_pos: number[] = []
 let rotate_vector_new: number[] = []
 let n: any = null
 let spawn_fruit_attempt = 0
+let score = 0
 let in_the_menu = false
 let menu_choices = 0
 let menu = 0
 let do_round_round_loop_result = ""
 let snake_positions: number[] = []
-let snake_length_goal = 0
 let last_traveled_direction: number[] = []
 let running = false
 let getset_at_2d_index = 0
@@ -443,12 +447,12 @@ let x: any = null
 let bright = 0
 let direction: number[] = []
 let board_size: number[] = []
+let fruit_positions: number[] = []
 let screen_no = 0
 let board: number[] = []
-let score = 0
+let snake_length_goal = 0
 let screens = 0
 let role = ""
-let type__intensity: number[] = []
 let add_vectors_output: number[] = []
 let tone_queue: number[] = []
 let XY: string[] = []
@@ -456,7 +460,7 @@ XY = ["x", "y"]
 tone_queue = []
 add_vectors_output = [0, 0]
 // See "board value" function for the order / names of the types of objects that can be on the board.
-type__intensity = [
+let type__intensity = [
 0,
 150,
 255,
@@ -474,5 +478,11 @@ control.inBackground(function () {
             music.stopAllSounds()
             basic.pause(1)
         }
+    }
+})
+control.inBackground(function () {
+    while (true) {
+        render_fruits()
+        basic.pause(16)
     }
 })
