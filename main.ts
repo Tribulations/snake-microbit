@@ -97,6 +97,13 @@ function do_round () {
     que_start_chime()
     running = true
     while (true) {
+        // If gamed is paused by shaking the controller, "running" is set to False so it stays in this pause-loop until "running" is set to True again (by another shake) and it breaks the loop
+        while (true) {
+            if (running == true) {
+                break;
+            }
+            basic.pause(400)
+        }
         do_round_round_loop_result = round_loop()
         if (do_round_round_loop_result != "") {
             show_end_message(do_round_round_loop_result)
@@ -279,6 +286,13 @@ function rotate_vector (vector: any[], turns: number): any {
     // We have rotated one turn closer to the base case of turns = 0. Recurse with one less turn in the same direction.
     return rotate_vector(rotate_vector_new, sign(turns) * (Math.abs(turns) - 1))
 }
+input.onGesture(Gesture.Shake, function () {
+    if (running == true) {
+        running = false
+    } else {
+        running = true
+    }
+})
 radio.onReceivedValue(function (name, value) {
     // Receives and saves the virtual screen pixel in variables of x,y & brightness sent from the controlle
     if (name == "x") {
