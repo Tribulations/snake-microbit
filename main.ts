@@ -486,9 +486,3 @@ control.inBackground(function () {
         }
     }
 })
-control.inBackground(function () {
-    while (true) {
-        render_fruits()
-        basic.pause(16)
-    }
-})
