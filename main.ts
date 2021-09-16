@@ -106,14 +106,18 @@ function do_round () {
     que_start_chime()
     running = true
     while (true) {
-        basic.pause(350)
-        // In case the game is paused by shaking.
-        if (running == true) {
-            round_end_state = ""
-            update_snake()
-            if (round_end_state != "") {
-                end_round(round_end_state)
-                break;
+        basic.pause(16)
+        render_fruits()
+        if (input.runningTime() - last_snake_update > 350) {
+            // In case the game is paused by shaking.
+            if (running == true) {
+                round_end_state = ""
+                update_snake()
+                last_snake_update = input.runningTime()
+                if (round_end_state != "") {
+                    end_round(round_end_state)
+                    break;
+                }
             }
         }
     }
@@ -439,6 +443,7 @@ let in_the_menu = false
 let menu_choices = 0
 let menu = 0
 let round_end_state = ""
+let last_snake_update = 0
 let snake_positions: number[] = []
 let last_traveled_direction: number[] = []
 let running = false
