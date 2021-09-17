@@ -1,7 +1,4 @@
 /**
- * Radio
- */
-/**
  * Virtual screen
  */
 /**
@@ -28,12 +25,20 @@ function vec (vector: any[], component: string) {
         return vector[1]
     }
 }
+/**
+ * Radio
+ */
 function act_as_screen () {
     screens += 1
     // The increment of "screens" are broadcasted from screen-unit to other screen-units (if any) so that they will be assigned the next screenNo when B is pressed
     // The increment is also received by the controller so it can keep track of no of screens and set a correct "virtual screen size"
     radio.sendString("addscrn")
     screen_no = screens
+    board_size = get_virtual_screen_size()
+    board = []
+    for (let index = 0; index < vec(board_size, "x") * vec(board_size, "y"); index++) {
+        board.push(board_value("air"))
+    }
     // screenNo is the units ID so it will know its position on the board (1 - 2 - 3)
     basic.showNumber(screen_no)
 }
@@ -196,9 +201,7 @@ function update_virtual_screen_pixel (pos: any[], brightness: number) {
     // Sends x,y & brightness to the Screens if at least 1 screen have been registered
     // Else: plots screen pixel on controller screen
     if (screens > 0) {
-        radio.sendValue("x", x)
-        radio.sendValue("y", y)
-        radio.sendValue("bright", brightness)
+        radio.sendValue("pixel", _2d_index(pos) + brightness * board.length)
     } else {
         bright = brightness
         plotPos()
@@ -333,13 +336,19 @@ radio.onReceivedValue(function (name, value) {
         y = value
     } else if (name == "bright") {
         bright = value
-        x += -5 * (screen_no - 1)
-        // Checks if received pixel is part of actual screenNo and then calls for it to be plotted/unplotted.
-        // 
-        // If screenNo is 2 or 3, the x-value is adjusted from the "virtual x" to something that could be plotted on the  screen (0->4)
-        if (x <= 0 && x < 5) {
-            plotPos()
-        }
+    } else if (name == "pixel") {
+        bright = Math.idiv(value, board.length)
+        x = vec(vec_from_2d_index(value % board.length), "x")
+        y = vec(vec_from_2d_index(value % board.length), "y")
+    } else {
+    	
+    }
+    x += -5 * (screen_no - 1)
+    // Checks if received pixel is part of actual screenNo and then calls for it to be plotted/unplotted.
+    // 
+    // If screenNo is 2 or 3, the x-value is adjusted from the "virtual x" to something that could be plotted on the  screen (0->4)
+    if (0 <= x && x < 5) {
+        plotPos()
     }
 })
 function board_value (name: string) {
@@ -437,8 +446,8 @@ let y = 0
 let x: any = null
 let bright = 0
 let direction: number[] = []
-let board_size: number[] = []
 let fruit_positions: number[] = []
+let board_size: number[] = []
 let screen_no = 0
 let board: number[] = []
 let snake_length_goal__score = 0
