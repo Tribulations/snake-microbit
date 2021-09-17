@@ -333,16 +333,11 @@ radio.onReceivedValue(function (name, value) {
         y = value
     } else if (name == "bright") {
         bright = value
+        x += -5 * (screen_no - 1)
         // Checks if received pixel is part of actual screenNo and then calls for it to be plotted/unplotted.
         // 
         // If screenNo is 2 or 3, the x-value is adjusted from the "virtual x" to something that could be plotted on the  screen (0->4)
-        if (screen_no == 1 && x <= 4) {
-            plotPos()
-        } else if (screen_no == 2 && (x <= 5 && x <= 9)) {
-            x += -5
-            plotPos()
-        } else if (screen_no == 3 && x <= 10) {
-            x += -10
+        if (x <= 0 && x < 5) {
             plotPos()
         }
     }
@@ -379,17 +374,7 @@ function on_eat_fruit (pos: any[]) {
     }
 }
 function get_virtual_screen_size () {
-    if (screens == 0) {
-        return x_y(5, 5)
-    } else if (screens == 1) {
-        return x_y(5, 5)
-    } else if (screens == 2) {
-        return x_y(10, 5)
-    } else if (screens == 3) {
-        return x_y(15, 5)
-    } else {
-        return x_y(5, 5)
-    }
+    return x_y(screens * 5, 5)
 }
 function add_vectors (a: any[], b: any[]) {
     for (let xy of XY) {
